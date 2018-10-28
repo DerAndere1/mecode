@@ -142,5 +142,6 @@ TODO
 Credits
 -------
 This software was developed by the [Lewis Lab][2] at Harvard University.
+The file printer.py was modified by DerAndere to resolve issues with serial communication.
 
 [2]: http://lewisgroup.seas.harvard.edu/

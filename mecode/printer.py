@@ -1,3 +1,13 @@
+'''
+@title: mecode/mecode/printer.py
+@authors: Jack Minardi, DerAndere
+@copyright: Copyright (c) 2014, 2018 Jack Minardi, DerAndere
+/ SPDX-License-Identifier: MIT
+Contributions: Written by Jack Minardi. Modified By DerAndere to resolve issues
+with serial communication
+
+'''
+
 import os
 import logging
 from threading import Thread, Event, Lock
@@ -111,21 +121,17 @@ class Printer(object):
         """
         with self._connection_lock:
             if s is None:
-                self.s = serial.Serial(self.port, self.baudrate, timeout=3)
+                self.s = serial.Serial(self.port, self.baudrate, timeout=6)
+                sleep(5)                
             else:
                 self.s = s
                 self._owns_serial = False
-            self._ok_received.set()
             self._current_line_idx = 0
             self._buffer = []
             self.responses = []
             self.sentlines = []
             self._disconnect_pending = False
-            self._start_read_thread()
-            if s is None:
-                while len(self.responses) == 0:
-                    sleep(0.01)  # wait until the start message is recieved.
-                self.responses = []
+            self._ok_received.set()
         logger.debug('Connected to {}'.format(self.s))
 
     def disconnect(self, wait=False):
@@ -256,7 +262,7 @@ class Printer(object):
 
         """
         # example r: X:0.00 Y:0.00 Z:0.00 E:0.00 Count X: 0.00 Y:0.00 Z:0.00
-        r = self.get_response("M114")
+        r = self.get_response("M114").decode("utf-8")
         r = r.split(' Count')[0].strip().split()
         r = [x.split(':') for x in r]
         pos = dict([(k, float(v)) for k, v in r])
@@ -331,14 +337,14 @@ class Printer(object):
                 sleep(0.01)
             if _paused is True:
                 logger.debug('Printer.paused is now False, resuming.')
-            if self._current_line_idx < len(self._buffer):
+            if self._current_line_idx < len(self._buffer):                      
                 self.printing = True
                 while not self._ok_received.is_set() and not self.stop_printing:
                     self._ok_received.wait(1)
                 line = self._next_line()
                 with self._communication_lock:
-                    self.s.write(line)
                     self._ok_received.clear()
+                    self.s.write(bytes(line, "utf-8"))
                     self._current_line_idx += 1
                 # Grab the just sent line without line numbers or checksum
                 plain_line = self._buffer[self._current_line_idx - 1].strip()
@@ -355,7 +361,7 @@ class Printer(object):
         full_resp = ''
         while not self.stop_reading:
             if self.s is not None:
-                line = self.s.readline()
+                line = self.s.readline().decode("utf-8")
                 if line.startswith('Resend: '):  # example line: "Resend: 143"
                     self._current_line_idx = int(line.split()[1]) - 1 + self._reset_offset
                     logger.debug('Resend Requested - {}'.format(line.strip()))

@@ -1,17 +1,11 @@
-DVAR $hFile
-DVAR $cCheck
-DVAR $press
-DVAR $length
-DVAR $lame
-DVAR $comport
-DVAR $vacpress
-
-$DO0.0=0
-$DO1.0=0
-$DO2.0=0
-$DO3.0=0
-
-Primary ; sets primary units mm and s
-G65 F2000; accel speed mm/s^2
-G66 F2000;accel speed mm/s^2
-
+; G-code script for controlling a cartesian robot (also known as lab robot, 
+; liquid handling robot or pipetting robot) that runs marlin firmware 
+; (http://marlinfw.org/meta/download/).
+; This script was (partially or as a whole) generated semi-automatically using 
+; the software GGCGen 
+; (https://gitlab.com/RobotsByDerAndere/CartesianRobotsByDerAndere/GGCGen/). 
+; GGCGen was developed in 2018 by DerAndere and is licensed 
+; under the terms of the MIT license.
+; #############################################################################
+; #############################################################################
+;

@@ -8,10 +8,11 @@ with serial communication
 
 '''
 
-import os
 import logging
 from threading import Thread, Event, Lock
 from time import sleep, time
+#import inspect  # provides getsourcefile() for getting the path to the currently running script. 
+#import pathlib  # provides Path() and Path().write_text(), Path().resolve() and Path().resolve().Parent() for file handling. Replaces os.path and does not need open()
 
 import serial
 
@@ -21,7 +22,7 @@ except NameError:
     # In python 3, reduce is no longer imported by default.
     from functools import reduce
 
-HERE = os.path.dirname(os.path.abspath(__file__))
+#HERE = pathlib.Path(inspect.getsourcefile(lambda:0)).resolve().parent
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)

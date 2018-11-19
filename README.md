@@ -14,16 +14,16 @@ design reset upon serial connection (e.g the Anet V1.0 board of the
 Anet A2, A3, A6 or A8 3D-printer which has a Microchip Atmel ATmega 
 microcontroller of the AVR family) using Pyhon 3.7. 
 
-Basic Use with under Microsoft Windows
+Use under Microsoft Windows
 --------------------------------------
 Connect a CNC controller board that runs a firmware for communication and G-code
 interpretation (e.g. Marlin 2.0) to the computer. For this example the computer
-runs Windows 10 and the connection is via USB and the controller board is 
-recognized at virtual com port COM3. On the computer, create a 
+runs Windows 10 and the connection is via USB (assume the controller board is 
+recognized at virtual COM port COM3). On the computer, create a 
 Python script that contains the following code: 
 ```python
 import mecode  #  See https://github.com/DerAndere1/mecode . License: MIT 
-impoet time  # provides sleep()
+import time  # provides sleep()
 g = mecode.G(direct_write=True, direct_write_mode="serial", printer_port="COM3", baudrate=115200)   # direct communication via serial connection at port COMx (with x=3) under Microsoft Windows.
 g.write("M302 S0")   # send g-Code. Here: allow cold extrusion. Danger: Make sure extruder is clean without filament inserted 
 g.write("G28")   # send g-Code. Here: Home all axis 
@@ -32,10 +32,10 @@ g.retract(10)   # move extruder motor
 time.sleep(10)  # wait 10 seconds to make sure all commands where executed 
 ```
 When running the above Python script, a USB serial connection will be 
-established and G-codes will be sent directly to the controller board via 
-that USB serial connection. Best performance is achieved when using full speed
-USB 2.0 or better (480 Mbit/s, e.g. with the newest Smoothieboard running Marlin 
-2 firmware).
+established at virtual COM port COM3 and G-codes will be sent directly to the 
+controller board via that USB serial connection. Best performance is 
+achieved when using full speed USB 2.0 or better (480 Mb it/s, e.g. with the 
+newest Smoothieboard running Marlin 2 firmware).
 
 Basic Use
 ---------

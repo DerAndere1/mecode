@@ -1,14 +1,41 @@
 Mecode
 ======
 
-[![Build Status](https://travis-ci.org/jminardi/mecode.svg?branch=master)](https://travis-ci.org/jminardi/mecode)
 
 ### GCode for all
 
 Mecode is designed to simplify GCode generation. It is not a slicer, thus it
 can not convert CAD models to 3D printer ready code. It simply provides a
 convenient, human-readable layer just above GCode. If you often find
-yourself manually writing your own GCode, then mecode is for you.
+yourself manually writing your own GCode, then mecode is for you. This a 
+fork of jminardy's mecode that was modified by DerAndere so it can be used
+to communicate with USB controller boards that feature microcontrollers that by 
+design reset upon serial connection (e.g the Anet V1.0 board of the 
+Anet A2, A3, A6 or A8 3D-printer which has a Microchip Atmel ATmega 
+microcontroller of the AVR family) using Pyhon 3.7. 
+
+Basic Use with under Microsoft Windows
+--------------------------------------
+Connect a CNC controller board that runs a firmware for communication and G-code
+interpretation (e.g. Marlin 2.0) to the computer. For this example the computer
+runs Windows 10 and the connection is via USB and the controller board is 
+recognized at virtual com port COM3. On the computer, create a 
+Python script that contains the following code: 
+```python
+import mecode  #  See https://github.com/DerAndere1/mecode . License: MIT 
+impoet time  # provides sleep()
+g = mecode.G(direct_write=True, direct_write_mode="serial", printer_port="COM3", baudrate=115200)   # direct communication via serial connection at port COMx (with x=3) under Microsoft Windows.
+g.write("M302 S0")   # send g-Code. Here: allow cold extrusion. Danger: Make sure extruder is clean without filament inserted 
+g.write("G28")   # send g-Code. Here: Home all axis 
+g.move(10, 10, 10)   # move 10mm in x and 10mm in y and 10mm in z
+g.retract(10)   # move extruder motor
+time.sleep(10)  # wait 10 seconds to make sure all commands where executed 
+```
+When running the above Python script, a USB serial connection will be 
+established and G-codes will be sent directly to the controller board via 
+that USB serial connection. Best performance is achieved when using full speed
+USB 2.0 or better (480 Mbit/s, e.g. with the newest Smoothieboard running Marlin 
+2 firmware).
 
 Basic Use
 ---------
@@ -142,6 +169,15 @@ TODO
 Credits
 -------
 This software was developed by the [Lewis Lab][2] at Harvard University.
-The file printer.py was modified by DerAndere to resolve issues with serial communication.
+The files printer.py and main.py were modified by [DerAndere][3],[4] to 
+resolve issues with serial communication and to replace os.path library with 
+libraries pathlib and inspect for future-proof compatibility with Python 3.7.
+Files header.txt and footer.txt were adapted to replace Aerotech-specific 
+content with specific content for the lab robot [pipetBot-A8][3],[4] to be 
+usable with the Graphical G-code Generator / robot control software 
+[GGCGen by DerAndere][3],[5].
 
 [2]: http://lewisgroup.seas.harvard.edu/
+[3]: https://it-by-derandere.blogspot.com
+[4]: http://www.github.com/DerAndere1/
+[5]: http://www.gitlab.com/DerAndere/

@@ -16,11 +16,29 @@ from time import sleep, time
 
 import serial
 
+# for python 2/3 compatibility
 try:
     reduce
 except NameError:
     # In python 3, reduce is no longer imported by default.
     from functools import reduce
+
+try:
+    isinstance("", basestring)
+
+    def is_str(s):
+        return isinstance(s, basestring)
+
+    def encode2To3(s):
+        return s
+
+except NameError:
+
+    def is_str(s):
+        return isinstance(s, str)
+
+    def encode2To3(s):
+        return bytes(s, 'UTF-8')
 
 #HERE = pathlib.Path(inspect.getsourcefile(lambda:0)).resolve().parent
 
@@ -345,7 +363,7 @@ class Printer(object):
                 line = self._next_line()
                 with self._communication_lock:
                     self._ok_received.clear()
-                    self.s.write(bytes(line, "utf-8"))
+                    self.s.write(encode2To3(line))
                     self._current_line_idx += 1
                 # Grab the just sent line without line numbers or checksum
                 plain_line = self._buffer[self._current_line_idx - 1].strip()

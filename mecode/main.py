@@ -913,9 +913,9 @@ class G(object):
                     self._p.connect()
                     self._p.start()
                 if resp_needed:
-                    return self._p.get_response(statement_in)
+                    return self._p.get_response(statement)
                 else:
-                    self._p.sendline(statement_in)
+                    self._p.sendline(statement)
 
     def rename_axis(self, x=None, y=None, z=None):
         """ Replaces the x, y, or z axis with the given name.

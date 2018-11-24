@@ -32,6 +32,9 @@ try:
     def encode2To3(s):
         return s
 
+    def decode2To3(s):
+        return s
+
 except NameError:
 
     def is_str(s):
@@ -39,6 +42,9 @@ except NameError:
 
     def encode2To3(s):
         return bytes(s, 'UTF-8')
+
+    def decode2To3(s):
+        return s.decode('UTF-8')
 
 #HERE = pathlib.Path(inspect.getsourcefile(lambda:0)).resolve().parent
 
@@ -281,7 +287,7 @@ class Printer(object):
 
         """
         # example r: X:0.00 Y:0.00 Z:0.00 E:0.00 Count X: 0.00 Y:0.00 Z:0.00
-        r = self.get_response("M114").decode("utf-8")
+        r = self.get_response("M114")
         r = r.split(' Count')[0].strip().split()
         r = [x.split(':') for x in r]
         pos = dict([(k, float(v)) for k, v in r])
@@ -380,7 +386,7 @@ class Printer(object):
         full_resp = ''
         while not self.stop_reading:
             if self.s is not None:
-                line = self.s.readline().decode("utf-8")
+                line = decode2To3(self.s.readline())
                 if line.startswith('Resend: '):  # example line: "Resend: 143"
                     self._current_line_idx = int(line.split()[1]) - 1 + self._reset_offset
                     logger.debug('Resend Requested - {}'.format(line.strip()))

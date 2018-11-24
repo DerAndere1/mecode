@@ -7,12 +7,9 @@ Contributions: Written by Jack Minardi. Modified By DerAndere to resolve issues
 with serial communication
 
 '''
-
 import logging
 from threading import Thread, Event, Lock
 from time import sleep, time
-import inspect  # provides getsourcefile() for getting the path to the currently running script. 
-import pathlib  # provides Path() and Path().write_text(), Path().resolve() and Path().resolve().Parent() for file handling. Replaces os.path and does not need open()
 
 import serial
 
@@ -46,8 +43,6 @@ except NameError:
     def decode2To3(s):
         return s.decode('UTF-8')
 
-HERE = pathlib.Path(inspect.getsourcefile(lambda:0)).resolve().parent
-
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 #logger.addHandler(logging.StreamHandler())
@@ -59,7 +54,6 @@ logger.setLevel(logging.DEBUG)
 class Printer(object):
     """ The Printer object is responsible for serial communications with a
     printer. The printer is expected to be running Marlin firmware.
-
     """
 
     def __init__(self, port='/dev/tty.usbmodem1421', baudrate=250000):
@@ -136,32 +130,30 @@ class Printer(object):
 
     def connect(self, s=None):
         """ Instantiate a Serial object using the stored port and baudrate.
-
         Parameters
         ----------
         s : serial.Serial
             If a serial object is passed in then it will be used instead of
             creating a new one.
-
         """
         with self._connection_lock:
             if s is None:
                 self.s = serial.Serial(self.port, self.baudrate, timeout=6)
-                sleep(5)                
+                sleep(5)
             else:
                 self.s = s
                 self._owns_serial = False
+            self._ok_received.set()
             self._current_line_idx = 0
             self._buffer = []
             self.responses = []
             self.sentlines = []
             self._disconnect_pending = False
-            self._ok_received.set()
+            self._start_read_thread()
         logger.debug('Connected to {}'.format(self.s))
 
     def disconnect(self, wait=False):
         """ Disconnect from the printer by stopping threads and closing the port
-
         Parameters
         ----------
         wait : Bool (default: False)
@@ -170,7 +162,6 @@ class Printer(object):
             isn't guaranteed.  If the read thread isn't running for some reason,
             this function may return without waiting even when wait is set to
             True.
-
         """
         with self._connection_lock:
             self._disconnect_pending = True
@@ -206,12 +197,10 @@ class Printer(object):
     def load_file(self, filepath):
         """ Load the given file into an internal _buffer. The lines will not be
         send until `self._start_print_thread()` is called.
-
         Parameters
         ----------
         filepath : str
             The path to a text file containing lines of GCode to be printed.
-
         """
         lines = []
         with open(filepath) as f:
@@ -231,12 +220,10 @@ class Printer(object):
 
     def sendline(self, line):
         """ Send the given line over serial by appending it to the send buffer
-
         Parameters
         ----------
         line : str
             A line of GCode to send to the printer.
-
         """
         if self._disconnect_pending:
             msg = 'Attempted to send line after a disconnect was requested: {}'
@@ -250,17 +237,14 @@ class Printer(object):
 
     def get_response(self, line, timeout=0):
         """ Send the given line and return the response from the printer.
-
         Parameters
         ----------
         line : str
             The line to send to the printer
-
         Returns
         -------
         r : str
             The response from the printer.
-
         """
         buf_len = len(self._buffer) + 1
         self.sendline(line)
@@ -278,13 +262,11 @@ class Printer(object):
 
     def current_position(self):
         """ Get the current postion of the printer.
-
         Returns
         -------
         pos : dict
             Dict with keys of 'X', 'Y', 'Z', and 'E' and values of their
             positions
-
         """
         # example r: X:0.00 Y:0.00 Z:0.00 E:0.00 Count X: 0.00 Y:0.00 Z:0.00
         r = self.get_response("M114")
@@ -304,7 +286,6 @@ class Printer(object):
         serial to the printer. This thread can be stopped by setting
         `stop_printing` to True. If a print_thread already exists and is alive,
         this method does nothing.
-
         """
         if self._is_print_thread_running():
             return
@@ -320,7 +301,6 @@ class Printer(object):
         printer. This thread can be stopped by setting `stop_reading` to True.
         If a print_thread already exists and is alive, this method does
         nothing.
-
         """
         if self._is_read_thread_running():
             return
@@ -351,7 +331,6 @@ class Printer(object):
     def _print_worker(self):
         """ This method is spawned in the print thread. It loops over every line
         in the _buffer and sends it over serial to the printer.
-
         """
         while not self.stop_printing:
             _paused = False
@@ -362,14 +341,14 @@ class Printer(object):
                 sleep(0.01)
             if _paused is True:
                 logger.debug('Printer.paused is now False, resuming.')
-            if self._current_line_idx < len(self._buffer):                      
+            if self._current_line_idx < len(self._buffer):
                 self.printing = True
                 while not self._ok_received.is_set() and not self.stop_printing:
                     self._ok_received.wait(1)
                 line = self._next_line()
                 with self._communication_lock:
-                    self._ok_received.clear()
                     self.s.write(encode2To3(line))
+                    self._ok_received.clear()
                     self._current_line_idx += 1
                 # Grab the just sent line without line numbers or checksum
                 plain_line = self._buffer[self._current_line_idx - 1].strip()
@@ -381,7 +360,6 @@ class Printer(object):
     def _read_worker(self):
         """ This method is spawned in the read thread. It continuously reads
         from the printer over serial and checks for 'ok's.
-
         """
         full_resp = ''
         while not self.stop_reading:
@@ -424,7 +402,6 @@ class Printer(object):
     def _next_line(self):
         """ Prepares the next line to be sent to the printer by prepending the
         line number and appending a checksum and newline character.
-
         """
         line = self._buffer[self._current_line_idx].strip()
         if line.startswith('M110 N'):

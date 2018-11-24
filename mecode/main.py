@@ -1,15 +1,19 @@
 """
 Mecode
 ======
+
 ### GCode for all
+
 Mecode is designed to simplify GCode generation. It is not a slicer, thus it
 can not convert CAD models to 3D printer ready code. It simply provides a
 convenient, human-readable layer just above GCode. If you often find
 yourself manually writing your own GCode, then mecode is for you.
+
 Basic Use
 ---------
 To use, simply instantiate the `G` object and use its methods to trace your
 desired tool path. ::
+
     from mecode import G
     g = G()
     g.move(10, 10)  # move 10mm in x and 10mm in y
@@ -17,31 +21,40 @@ desired tool path. ::
     g.meander(5, 10, spacing=1)  # trace a rectangle meander with 1mm spacing between the passes
     g.abs_move(x=1, y=1)  # move the tool head to position (1, 1)
     g.home()  # move the tool head to the origin (0, 0)
+
 By default `mecode` simply prints the generated GCode to stdout. If instead you
 want to generate a file, you can pass a filename and turn off the printing when
 instantiating the `G` object. ::
+
     g = G(outfile='path/to/file.gcode', print_lines=False)
+
 *NOTE:* `g.teardown()` must be called after all commands are executed if you
 are writing to a file.
+
 The resulting toolpath can be visualized in 3D using the `mayavi` package with
 the `view()` method ::
+
     g = G()
     g.meander(10, 10, 1)
     g.view()
+
 * *Author:* Jack Minardi
 * *Email:* jack@minardi.org
+
 This software was developed by the Lewis Lab at Harvard University and Voxel8 Inc.
+
 """
 
 import math
 from collections import defaultdict
+
 import inspect  # provides getsourcefile() for getting the path to the currently running script. 
 import pathlib  # provides Path() and Path().write_text(), Path().resolve() and Path().resolve().Parent() for file handling. Replaces os.path and does not need open()
+
 
 from .printer import Printer
 
 HERE = pathlib.Path(inspect.getsourcefile(lambda:0)).resolve().parent
-
 # for python 2/3 compatibility
 try:
     isinstance("", basestring)
@@ -156,6 +169,7 @@ class G(object):
             Line ending to use when writing to a file or printer. The special
             value 'os' can be passed to fall back on python's automatic
             lineending insertion.
+
         """
         self.outfile = outfile
         self.print_lines = print_lines
@@ -220,6 +234,7 @@ class G(object):
         """
         Context manager entry
         Can use like:
+
         with mecode.G(  outfile=self.outfile,
                         print_lines=False,
                         aerotech_include=False) as g:
@@ -237,10 +252,12 @@ class G(object):
 
     def set_home(self, x=None, y=None, z=None, **kwargs):
         """ Set the current position to the given position without moving.
+
         Example
         -------
         >>> # set the current position to X=0, Y=0
         >>> g.set_home(0, 0)
+
         """
         args = self._format_args(x, y, z, **kwargs)
         space = ' ' if len(args) > 0 else ''
@@ -259,6 +276,7 @@ class G(object):
     def relative(self):
         """ Enter relative movement mode, in general this method should not be
         used, most methods handle it automatically.
+
         """
         if not self.is_relative:
             self.write('G91 ;relative')
@@ -267,6 +285,7 @@ class G(object):
     def absolute(self):
         """ Enter absolute movement mode, in general this method should not be
         used, most methods handle it automatically.
+
         """
         if self.is_relative:
             self.write('G90 ;absolute')
@@ -274,20 +293,24 @@ class G(object):
 
     def feed(self, rate):
         """ Set the feed rate (tool head speed) in (typically) mm/minute
+
         Parameters
         ----------
         rate : float
             The speed to move the tool head in (typically) mm/minute.
+
         """
         self.write('G1 F{}'.format(rate))
         self.speed = rate
 
     def dwell(self, time):
         """ Pause code executions for the given amount of time.
+
         Parameters
         ----------
         time : float
             Time in milliseconds to pause code execution.
+
         """
         self.write('G4 P{}'.format(time))
 
@@ -296,6 +319,7 @@ class G(object):
     def setup(self):
         """ Set the environment into a consistent state to start off. This
         method must be called before any other commands.
+
         """
         self._write_header()
         if self.is_relative:
@@ -306,15 +330,17 @@ class G(object):
     def teardown(self, wait=True):
         """ Close the outfile file after writing the footer if opened. This
         method must be called once after all commands.
+
         Parameters
         ----------
         wait : Bool (default: True)
             Only used if direct_write_model == 'serial'. If True, this method
             waits to return until all buffered lines have been acknowledged.
+
         """
         if self.out_fd is not None:
             if self.aerotech_include is True:
-                with open(HERE / 'footer.txt') as fd: # joining paths. see pathlib 
+                with open(HERE / 'footer.txt') as fd:
                     self._write_out(lines=fd.readlines())
             if self.footer is not None:
                 with open(self.footer) as fd:
@@ -336,14 +362,17 @@ class G(object):
         relative mode unless a manual call to `absolute` was given previously.
         If an absolute movement is desired, the `abs_move` method is
         recommended instead.
+
         Examples
         --------
         >>> # move the tool head 10 mm in x and 10 mm in y
         >>> g.move(x=10, y=10)
         >>> # the x, y, and z keywords may be omitted:
         >>> g.move(10, 10, 10)
+
         >>> # move the A axis up 20 mm
         >>> g.move(A=20)
+
         """
         if self.extrude is True and 'E' not in kwargs.keys():
             if self.is_relative is not True:
@@ -402,6 +431,7 @@ class G(object):
         direction. If helix_dim and helix_len are specified then the tool head
         will also perform a linear movement through the given dimension while
         completing the arc.
+
         Parameters
         ----------
         points : floats
@@ -416,14 +446,18 @@ class G(object):
             The linear dimension to complete the helix through
         helix_len : float
             The length to move in the linear helix dimension.
+
         Examples
         --------
         >>> # arc 10 mm up in y and 10 mm over in x with a radius of 20.
         >>> g.arc(x=10, y=10, radius=20)
+
         >>> # move 10 mm up on the A axis, arcing through y with a radius of 20
         >>> g.arc(A=10, y=0, radius=20)
+
         >>> # arc through x and y while moving linearly on axis A
         >>> g.arc(x=10, y=10, radius=50, helix_dim='A', helix_len=5)
+
         """
         dims = dict(kwargs)
         if x is not None:
@@ -513,6 +547,7 @@ class G(object):
         direction. If helix_dim and helix_len are specified then the tool head
         will also perform a linear movement along the axis orthogonal to the
         arc plane while completing the arc.
+
         Parameters
         ----------
         plane : str ('xy', 'yz', 'xz')
@@ -527,6 +562,7 @@ class G(object):
         helix_len : float
             The distance to move along the axis orthogonal to the arc plane
             during the arc.
+
         """
 
         if len(target) != 2:
@@ -591,6 +627,7 @@ class G(object):
 
     def rect(self, x, y, direction='CW', start='LL'):
         """ Trace a rectangle with the given width and height.
+
         Parameters
         ----------
         x : float
@@ -602,12 +639,15 @@ class G(object):
         start : str (either 'LL', 'UL', 'LR', 'UR') (default: 'LL')
             The start of the rectangle -  L/U = lower/upper, L/R = left/right
             This assumes an origin in the lower left.
+
         Examples
         --------
         >>> # trace a 10x10 clockwise square, starting in the lower left corner
         >>> g.rect(10, 10)
+
         >>> # 1x5 counterclockwise rect starting in the upper right corner
         >>> g.rect(1, 5, direction='CCW', start='UR')
+
         """
         if direction == 'CW':
             if start.upper() == 'LL':
@@ -657,6 +697,7 @@ class G(object):
         """ Infill a rectangle with a square wave meandering pattern. If the
         relevant dimension is not a multiple of the spacing, the spacing will
         be tweaked to ensure the dimensions work out.
+
         Parameters
         ----------
         x : float
@@ -673,15 +714,19 @@ class G(object):
             Whether or not to terminate the meander in the minor axis
         minor_feed : float or None (default: None)
             Feed rate to use in the minor axis
+
         Examples
         --------
         >>> # meander through a 10x10 sqaure with a spacing of 1mm starting in
         >>> # the lower left.
         >>> g.meander(10, 10, 1)
+
         >>> # 3x5 meander with a spacing of 1 and with parallel lines through y
         >>> g.meander(3, 5, spacing=1, orientation='y')
+
         >>> # 10x5 meander with a spacing of 2 starting in the upper right.
         >>> g.meander(10, 5, 2, start='UR')
+
         """
         if start.upper() == 'UL':
             x, y = x, -y
@@ -731,6 +776,7 @@ class G(object):
     def clip(self, axis='z', direction='+x', height=4):
         """ Move the given axis up to the given height while arcing in the
         given direction.
+
         Parameters
         ----------
         axis : str (default: 'z')
@@ -739,12 +785,15 @@ class G(object):
             The direction to arc through
         height : float (default: 4)
             The height to end up at
+
         Examples
         --------
         >>> # move 'z' axis up 4mm while arcing through positive x
         >>> g.clip()
+
         >>> # move 'A' axis up 10mm while arcing through negative y
         >>> g.clip('A', height=10, direction='-y')
+
         """
         secondary_axis = direction[1]
         if height > 0:
@@ -762,6 +811,7 @@ class G(object):
 
     def triangular_wave(self, x, y, cycles, start='UR', orientation='x'):
         """ Perform a triangular wave.
+
         Parameters
         ----------
         x : float
@@ -773,19 +823,23 @@ class G(object):
             This assumes an origin in the lower left, and move toward upper
             right.
         orientation : str ('x' or 'y') (default: 'x')
+
         Examples
         --------
         >>> # triangular wave for one cycle going 10 in x and 10 in y per half
         >>> # cycle.
         >>> # the lower left.
         >>> g.zigzag(10, 10, 1)
+
         >>> # triangular wave 4 cycles, going 3 in x and 5 in y per half cycle,
         >>> # oscillating along the y axis.
         >>> g.zigzag(3, 5, 4, orientation='y')
+
         >>> # triangular wave 2 cycles, going 10 in x and 5 in y per half cycle,
         >>> # oscillating along the x axis making the first half cycle towards
         >>> # the lower left corner of the movement area.
         >>> g.zigzag(10, 5, 2, start='LL')
+
         """
         if start.upper() == 'UL':
             x, y = -x, y
@@ -828,10 +882,12 @@ class G(object):
 
     def set_cal_file(self, path):
         """ Dynamically applies the specified calibration file at runtime.
+
         Parameters
         ----------
         path : str
             The path specifying the aerotech calibration file.
+
         """
         self.write(r'LOADCALFILE "{}", 2D_CAL'.format(path))
 
@@ -851,10 +907,12 @@ class G(object):
 
     def view(self, backend='mayavi'):
         """ View the generated Gcode.
+
         Parameters
         ----------
         backend : str (default: 'matplotlib')
             The plotting backend to use, one of 'matplotlib' or 'mayavi'.
+
         """
         import numpy as np
         history = np.array(self.position_history)
@@ -913,15 +971,17 @@ class G(object):
                     self._p.connect()
                     self._p.start()
                 if resp_needed:
-                    return self._p.get_response(statement)
+                    return self._p.get_response(statement_in)
                 else:
-                    self._p.sendline(statement)
+                    self._p.sendline(statement_in)
 
     def rename_axis(self, x=None, y=None, z=None):
         """ Replaces the x, y, or z axis with the given name.
+
         Examples
         --------
         >>> g.rename_axis(z='A')
+
         """
         if x is not None:
             self.x_axis = x
@@ -964,7 +1024,7 @@ class G(object):
 
     def _write_header(self):
         if self.aerotech_include is True:
-            with open(HERE / 'header.txt') as fd:  # joining paths. see pathlib
+            with open(HERE / 'header.txt') as fd:
                 self._write_out(lines=fd.readlines())
         if self.header is not None:
             with open(self.header) as fd:
@@ -1030,3 +1090,4 @@ class G(object):
         if (len(self.speed_history) == 0
             or self.speed_history[-1][1] != self.speed):
             self.speed_history.append((len_history - 1, self.speed))
+

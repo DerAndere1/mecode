@@ -11,8 +11,8 @@ with serial communication
 import logging
 from threading import Thread, Event, Lock
 from time import sleep, time
-#import inspect  # provides getsourcefile() for getting the path to the currently running script. 
-#import pathlib  # provides Path() and Path().write_text(), Path().resolve() and Path().resolve().Parent() for file handling. Replaces os.path and does not need open()
+import inspect  # provides getsourcefile() for getting the path to the currently running script. 
+import pathlib  # provides Path() and Path().write_text(), Path().resolve() and Path().resolve().Parent() for file handling. Replaces os.path and does not need open()
 
 import serial
 
@@ -46,7 +46,7 @@ except NameError:
     def decode2To3(s):
         return s.decode('UTF-8')
 
-#HERE = pathlib.Path(inspect.getsourcefile(lambda:0)).resolve().parent
+HERE = pathlib.Path(inspect.getsourcefile(lambda:0)).resolve().parent
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)

@@ -22,14 +22,13 @@ runs Windows 10 and the connection is via USB (assume the controller board is
 recognized at virtual COM port COM3). On the computer, create a 
 Python script that contains the following code: 
 ```python
-import mecode  #  See https://github.com/DerAndere1/mecode . License: MIT 
-import time  # provides sleep()
+import mecode  # See https://github.com/DerAndere1/mecode . License: MIT 
 g = mecode.G(direct_write=True, direct_write_mode="serial", printer_port="COM3", baudrate=115200)   # direct communication via serial connection at port COMx (with x=3) under Microsoft Windows.
 g.write("M302 S0")   # send g-Code. Here: allow cold extrusion. Danger: Make sure extruder is clean without filament inserted 
 g.write("G28")   # send g-Code. Here: Home all axis 
 g.move(10, 10, 10)   # move 10mm in x and 10mm in y and 10mm in z
 g.retract(10)   # move extruder motor
-time.sleep(10)  # wait 10 seconds to make sure all commands where executed 
+g.write("M400")
 ```
 When running the above Python script, a USB serial connection will be 
 established at virtual COM port COM3 and G-codes will be sent directly to the 

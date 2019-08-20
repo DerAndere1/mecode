@@ -12,7 +12,7 @@ from threading import Thread, Event, Lock
 from time import sleep, time
 
 import serial
-
+import serialreader
 # for python 2/3 compatibility
 try:
     reduce
@@ -143,6 +143,7 @@ class Printer(object):
             else:
                 self.s = s
                 self._owns_serial = False
+            self.serialReader = serialreader.SerialReader(self.s);
             self._ok_received.set()
             self._current_line_idx = 0
             self._buffer = []
@@ -364,7 +365,7 @@ class Printer(object):
         full_resp = ''
         while not self.stop_reading:
             if self.s is not None:
-                line = decode2To3(self.s.readline())
+                line = decode2To3(self.serialReader.readline())
                 if line.startswith('Resend: '):  # example line: "Resend: 143"
                     self._current_line_idx = int(line.split()[1]) - 1 + self._reset_offset
                     logger.debug('Resend Requested - {}'.format(line.strip()))
